@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Hosting.Internal;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.DependencyInjection;
+using System.Text;
 
 namespace Microsoft.AspNetCore.Hosting
 {
@@ -56,11 +57,18 @@ namespace Microsoft.AspNetCore.Hosting
                 }
 
                 var commandFactory = host.Services.GetRequiredService<InteractiveHostCommandFactory>();
-                while(!applicationLifetime.ApplicationStopping.IsCancellationRequested)
+                while(!token.IsCancellationRequested &&
+                      !applicationLifetime.ApplicationStopping.IsCancellationRequested)
                 {
                     Console.Write("Command > ");
-                    //TODO: ctrl+c will cause this to throw. Should look at fixing that.
+
                     var commandText = Console.ReadLine();
+
+                    if (commandText == null)
+                    {
+                        //null command text happens when you ctrl + c the app.
+                        break;
+                    }
 
                     var command = commandFactory.Get(commandText);
 
@@ -73,7 +81,6 @@ namespace Microsoft.AspNetCore.Hosting
                         await command.ExecuteAsync(commandText);
                     }
                 }
-                await host.WaitForShutdownAsync();
             }
         }
 
